@@ -3,23 +3,36 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Simple Drawing App</title>
+    <title>Drawing App</title>
     <style>
-        /* Basic styles for the page */
+        /* Basic styling */
         body {
             font-family: Arial, sans-serif;
             display: flex;
             flex-direction: column;
             align-items: center;
-            justify-content: center;
+            justify-content: flex-start;
             height: 100vh;
             margin: 0;
             background-color: #f0f0f0;
+            padding-top: 20px;
         }
 
         h1 {
             font-size: 24px;
-            margin-bottom: 20px;
+            margin-bottom: 10px;
+        }
+
+        #controls {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin-top: 20px;
+        }
+
+        #canvasWrapper {
+            position: relative;
+            border: 1px solid #000;
         }
 
         canvas {
@@ -27,60 +40,126 @@
             background-color: white;
         }
 
-        button {
-            margin-top: 10px;
-            padding: 10px 20px;
-            font-size: 16px;
+        button, input {
+            padding: 8px;
+            margin: 5px;
+            font-size: 14px;
+        }
+
+        input[type="color"] {
+            width: 40px;
+            height: 40px;
+            border: none;
+            padding: 0;
             cursor: pointer;
+        }
+
+        #brushSize {
+            width: 100px;
+        }
+
+        #clearButton {
+            background-color: #ff6b6b;
+            color: white;
+            border: none;
         }
     </style>
 </head>
 <body>
-    <h1>Draw Something!</h1>
-    <!-- Canvas where the drawing happens -->
-    <canvas id="drawingCanvas" width="800" height="600"></canvas>
-    
-    <!-- Clear button to clear the canvas -->
-    <div>
-        <button id="clearButton">Clear</button>
+
+    <h1>Interactive Drawing App</h1>
+
+    <div id="canvasWrapper">
+        <canvas id="drawingCanvas" width="800" height="600"></canvas>
+    </div>
+
+    <div id="controls">
+        <label for="colorPicker">Color:</label>
+        <input type="color" id="colorPicker" value="#000000">
+
+        <label for="brushSize">Brush Size:</label>
+        <input type="range" id="brushSize" min="1" max="50" value="5">
+
+        <button id="clearButton">Clear Canvas</button>
     </div>
 
     <script>
-        // Get the canvas element and its context
+        // Get elements
         const canvas = document.getElementById('drawingCanvas');
         const ctx = canvas.getContext('2d');
+        const colorPicker = document.getElementById('colorPicker');
+        const brushSizeSlider = document.getElementById('brushSize');
+        const clearButton = document.getElementById('clearButton');
 
-        // Set up drawing properties
+        // Set initial brush properties
         ctx.lineWidth = 5;
         ctx.lineCap = 'round';
-        ctx.strokeStyle = 'black';
+        ctx.strokeStyle = '#000000';
 
         let drawing = false;
 
-        // Start drawing
-        canvas.addEventListener('mousedown', (e) => {
+        // Functions for mouse and touch support
+        function startDrawing(e) {
             drawing = true;
             ctx.beginPath();
-            ctx.moveTo(e.offsetX, e.offsetY);
-        });
+            const { offsetX, offsetY } = e;
+            ctx.moveTo(offsetX, offsetY);
+        }
 
-        // Draw on the canvas
-        canvas.addEventListener('mousemove', (e) => {
+        function draw(e) {
             if (drawing) {
-                ctx.lineTo(e.offsetX, e.offsetY);
+                const { offsetX, offsetY } = e;
+                ctx.lineTo(offsetX, offsetY);
                 ctx.stroke();
             }
+        }
+
+        function stopDrawing() {
+            drawing = false;
+        }
+
+        function getTouchPosition(e) {
+            const rect = canvas.getBoundingClientRect();
+            const touch = e.touches[0];
+            return {
+                offsetX: touch.clientX - rect.left,
+                offsetY: touch.clientY - rect.top,
+            };
+        }
+
+        // Mouse events
+        canvas.addEventListener('mousedown', startDrawing);
+        canvas.addEventListener('mousemove', draw);
+        canvas.addEventListener('mouseup', stopDrawing);
+
+        // Touch events
+        canvas.addEventListener('touchstart', (e) => {
+            e.preventDefault(); // Prevent default touch events (like zooming)
+            const { offsetX, offsetY } = getTouchPosition(e);
+            startDrawing({ offsetX, offsetY });
+        });
+        canvas.addEventListener('touchmove', (e) => {
+            e.preventDefault();
+            const { offsetX, offsetY } = getTouchPosition(e);
+            draw({ offsetX, offsetY });
+        });
+        canvas.addEventListener('touchend', stopDrawing);
+
+        // Change brush color
+        colorPicker.addEventListener('input', (e) => {
+            ctx.strokeStyle = e.target.value;
         });
 
-        // Stop drawing
-        canvas.addEventListener('mouseup', () => {
-            drawing = false;
+        // Change brush size
+        brushSizeSlider.addEventListener('input', (e) => {
+            ctx.lineWidth = e.target.value;
         });
 
         // Clear canvas
-        document.getElementById('clearButton').addEventListener('click', () => {
+        clearButton.addEventListener('click', () => {
             ctx.clearRect(0, 0, canvas.width, canvas.height);
         });
+
     </script>
 </body>
 </html>

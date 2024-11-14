@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Drawing App</title>
+    <title>Drawing App with Eraser and Fill</title>
     <style>
         /* Basic styling */
         body {
@@ -63,6 +63,18 @@
             color: white;
             border: none;
         }
+
+        #toolButtons {
+            display: flex;
+            justify-content: space-between;
+            width: 250px;
+            margin-top: 10px;
+        }
+
+        .tool-button {
+            padding: 8px;
+            cursor: pointer;
+        }
     </style>
 </head>
 <body>
@@ -80,6 +92,12 @@
         <label for="brushSize">Brush Size:</label>
         <input type="range" id="brushSize" min="1" max="50" value="5">
 
+        <div id="toolButtons">
+            <button class="tool-button" id="brushButton">Brush</button>
+            <button class="tool-button" id="eraserButton">Eraser</button>
+            <button class="tool-button" id="fillButton">Fill</button>
+        </div>
+
         <button id="clearButton">Clear Canvas</button>
     </div>
 
@@ -90,13 +108,17 @@
         const colorPicker = document.getElementById('colorPicker');
         const brushSizeSlider = document.getElementById('brushSize');
         const clearButton = document.getElementById('clearButton');
+        const brushButton = document.getElementById('brushButton');
+        const eraserButton = document.getElementById('eraserButton');
+        const fillButton = document.getElementById('fillButton');
+
+        let currentTool = 'brush'; // Default tool is the brush
+        let drawing = false;
 
         // Set initial brush properties
         ctx.lineWidth = 5;
         ctx.lineCap = 'round';
         ctx.strokeStyle = '#000000';
-
-        let drawing = false;
 
         // Functions for mouse and touch support
         function startDrawing(e) {
@@ -109,8 +131,13 @@
         function draw(e) {
             if (drawing) {
                 const { offsetX, offsetY } = e;
-                ctx.lineTo(offsetX, offsetY);
-                ctx.stroke();
+
+                if (currentTool === 'brush') {
+                    ctx.lineTo(offsetX, offsetY);
+                    ctx.stroke();
+                } else if (currentTool === 'eraser') {
+                    ctx.clearRect(offsetX - ctx.lineWidth / 2, offsetY - ctx.lineWidth / 2, ctx.lineWidth, ctx.lineWidth);
+                }
             }
         }
 
@@ -145,21 +172,70 @@
         });
         canvas.addEventListener('touchend', stopDrawing);
 
-        // Change brush color
+        // Color picker
         colorPicker.addEventListener('input', (e) => {
             ctx.strokeStyle = e.target.value;
         });
 
-        // Change brush size
+        // Brush size slider
         brushSizeSlider.addEventListener('input', (e) => {
             ctx.lineWidth = e.target.value;
         });
+
+        // Change tools
+        brushButton.addEventListener('click', () => {
+            currentTool = 'brush';
+            ctx.lineWidth = brushSizeSlider.value; // Set back to current brush size
+        });
+
+        eraserButton.addEventListener('click', () => {
+            currentTool = 'eraser';
+        });
+
+        fillButton.addEventListener('click', () => {
+            currentTool = 'fill';
+            // The "fill" tool will fill an area with the current color.
+            // Let's implement it by detecting mouse clicks inside a bounded area.
+            canvas.addEventListener('click', fillCanvas);
+        });
+
+        // Fill canvas tool (basic flood-fill effect)
+        function fillCanvas(e) {
+            if (currentTool === 'fill') {
+                const { offsetX, offsetY } = e;
+                const startColor = ctx.getImageData(offsetX, offsetY, 1, 1).data;
+
+                // If the color is not the background color, we can use flood fill
+                if (startColor[3] !== 0) {
+                    const newColor = hexToRgb(colorPicker.value);
+                    ctx.fillStyle = `rgb(${newColor.r}, ${newColor.g}, ${newColor.b})`;
+                    ctx.fillRect(0, 0, canvas.width, canvas.height);
+                }
+            }
+        }
 
         // Clear canvas
         clearButton.addEventListener('click', () => {
             ctx.clearRect(0, 0, canvas.width, canvas.height);
         });
 
+        // Utility function to convert hex to rgb
+        function hexToRgb(hex) {
+            let r = 0, g = 0, b = 0;
+            // 3 digits
+            if (hex.length === 4) {
+                r = parseInt(hex[1] + hex[1], 16);
+                g = parseInt(hex[2] + hex[2], 16);
+                b = parseInt(hex[3] + hex[3], 16);
+            }
+            // 6 digits
+            else if (hex.length === 7) {
+                r = parseInt(hex[1] + hex[2], 16);
+                g = parseInt(hex[3] + hex[4], 16);
+                b = parseInt(hex[5] + hex[6], 16);
+            }
+            return { r, g, b };
+        }
     </script>
 </body>
 </html>
